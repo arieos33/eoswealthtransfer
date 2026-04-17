@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>EOSAI ◆ TRADING INTELLIGENCE PLATFORM ◆ v21 CLOUD</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<style>
+:root {
+  --bg:#040404; --panel:#080808; --panel2:#0d0d0d;
+  --border:#181818; --border2:#2a2000;
+  --gold:#f0b429; --gold2:#ffd166; --gold-dim:#6a4e10;
+  --green:#00e676; --red:#ff3d57; --blue:#00c8ff;
+  --text:#d4c5a0; --muted:#3a3328;
+  --glow-gold:0 0 22px rgba(240,180,41,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;min-height:100vh;overflow-x:hidden;}
+
+/* ── AUTH ── */
+#authScreen{position:fixed;inset:0;z-index:10000;background:radial-gradient(ellipse at 50% 30%,#0d0a02 0%,#040404 70%);display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.auth-wrap{width:100%;max-width:440px;padding:20px;}
+.auth-logo{font-family:'Cinzel',serif;font-size:32px;font-weight:900;letter-spacing:8px;color:var(--gold);text-shadow:var(--glow-gold);text-align:center;margin-bottom:4px;}
+.auth-box{background:var(--panel2);border:1px solid var(--border2);border-radius:4px;padding:28px 32px;}
+.auth-tabs{display:flex;gap:1px;background:var(--border);margin-bottom:20px;}
+.auth-tab{flex:1;padding:9px;text-align:center;font-size:10px;cursor:pointer;color:var(--muted);}
+.auth-tab.active{background:var(--panel);color:var(--gold);}
+.auth-field{margin-bottom:13px;}
+.auth-field label{display:block;font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
+.auth-field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;outline:none;}
+.auth-btn{width:100%;padding:12px;background:rgba(240,180,41,0.1);border:1px solid var(--gold);color:var(--gold);font-family:'Cinzel',serif;cursor:pointer;letter-spacing:2px;}
+.auth-err{font-size:11px;color:var(--red);margin-top:10px;text-align:center;}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;border-bottom:1px solid #1a1500;background:#050400;position:sticky;top:0;z-index:300;}
+.logo{font-family:'Cinzel',serif;font-size:22px;font-weight:900;color:var(--gold);}
+
+/* ── LAYOUT ── */
+.main {
+    display: grid;
+    grid-template-columns: 230px 1fr 290px;
+    gap: 1px;
+    background: var(--border);
+    min-height: calc(100vh - 52px);
+}
+.panel{background:var(--panel);padding:16px;overflow-y:auto;}
+.sec-title{font-family:'Cinzel',serif;font-size:10px;color:var(--gold-dim);margin-bottom:12px;letter-spacing:2px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+
+/* ── MOBILE RESPONSIVE FIX ── */
+@media (max-width: 1000px) {
+    .main { display: flex !important; flex-direction: column !important; height: auto !important; }
+    .panel { width: 100% !important; height: auto !important; overflow-y: visible !important; border-bottom: 1px solid var(--border); }
+    header { flex-direction: column !important; text-align: center; gap: 10px; }
+    .chart-container { height: 350px !important; }
+}
+
+/* ── SIGNAL & HISTORY UI ── */
+.signal-box{border:1px solid var(--border);padding:14px;margin-bottom:10px;transition:all 0.3s;}
+.signal-box.bullish{border-left:4px solid var(--green);background:rgba(0,230,118,0.03);}
+.signal-box.bearish{border-left:4px solid var(--red);background:rgba(255,61,87,0.03);}
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0;}
+
+.decision-row{display:none;gap:10px;margin-top:15px;}
+.btn-take{flex:1;padding:12px;background:var(--green);color:#000;border:none;font-weight:bold;cursor:pointer;font-family:'Cinzel';}
+.btn-skip{flex:1;padding:12px;background:transparent;border:1px solid var(--red);color:var(--red);cursor:pointer;font-family:'Cinzel';}
+
+.history-item{border:1px solid var(--border);padding:12px;margin-bottom:10px;font-size:11px; background: var(--panel2);}
+.outcome-input{width:100%;background:#000;border:1px solid var(--gold);color:var(--gold);font-size:11px;padding:6px;margin-top:8px;}
+
+/* ── AI THINKING STEPS ── */
+.ai-thinking{display:none;flex-direction:column;gap:4px;padding:10px;border:1px solid rgba(0,200,255,0.2);border-radius:3px;background:rgba(0,200,255,0.03);margin-bottom:8px;}
+.ai-thinking.visible{display:flex;animation:fadeIn .3s;}
+.ai-step{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);opacity:0;transition:opacity .4s;}
+.ai-step.done{opacity:1;color:var(--blue);}
+.ai-step.active{opacity:1;color:var(--gold);}
+.spinner{display:inline-block;width:10px;height:10px;border:1.5px solid rgba(0,200,255,0.2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+#appShell{display:none;}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="auth-wrap">
+    <div class="auth-logo">EOS<span>AI</span></div>
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">LOGIN</div>
+        <div class="auth-tab" id="tabCreate" onclick="switchAuthTab('create')">CREATE</div>
+      </div>
+      <div id="loginForm">
+        <div class="auth-field"><label>Email</label><input type="email" id="loginEmail"/></div>
+        <div class="auth-field"><label>Password</label><input type="password" id="loginPass"/></div>
+        <button class="auth-btn" onclick="doLogin()">⟶ ENTER THE GRID</button>
+        <div class="auth-err" id="loginErr"></div>
+      </div>
+      <div id="createForm" style="display:none">
+        <div class="auth-field"><label>Access Code</label><input type="password" id="accessCode" placeholder="NEWEARTHEOS"/></div>
+        <div class="auth-field"><label>Email</label><input type="email" id="newEmail"/></div>
+        <div class="auth-field"><label>Username</label><input type="text" id="newUser"/></div>
+        <div class="auth-field"><label>Password</label><input type="password" id="newPass"/></div>
+        <button class="auth-btn" onclick="doCreateAccount()">✦ ACTIVATE ACCOUNT</button>
+        <div class="auth-err" id="createErr"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="appShell">
+<header>
+  <div class="logo">EOS<span>AI</span></div>
+  <div class="hdr-right">
+    <span id="activePairLabel" style="font-family:'Cinzel';">XAU/USD</span> | <span id="hdrUsername">...</span>
+  </div>
+</header>
+
+<div class="main">
+  <div class="panel">
+    <div class="sec-title">Watchlist</div>
+    <div id="pairList">
+       <div class="pair-item active" style="cursor:pointer; padding:10px; border-bottom:1px solid var(--border)" onclick="changePair('XAUUSD','OANDA:XAUUSD','XAU/USD', 2, 0.1)">GOLD (XAU/USD)</div>
+       <div class="pair-item" style="cursor:pointer; padding:10px; border-bottom:1px solid var(--border)" onclick="changePair('EURUSD','FX:EURUSD','EUR/USD', 5, 0.0001)">EUR/USD</div>
+    </div>
+    <div style="margin-top:20px;">
+        <div class="sec-title">STRATEGY RULES</div>
+        <div style="font-size:11px; color:var(--gold-dim); line-height:1.8;">
+            ▸ Trend Alignment (HTF vs LTF)<br>▸ No-Wick Imbalance Candle<br>▸ Zone Return & Retest<br>▸ Fib 38.2% - 61.8% pullback<br><span style="color:var(--green);">▸ Min 7/10 required</span>
+        </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div id="tvChart" class="chart-container" style="height:400px; margin-bottom:15px;"></div>
+    
+    <div class="ai-thinking" id="aiThinking">
+        <div class="ai-step" id="step1"><span class="spinner"></span> Fetching Live Data...</div>
+        <div class="ai-step" id="step2"><span></span> Mapping Trend...</div>
+        <div class="ai-step" id="step3"><span></span> Scanning Imbalances...</div>
+        <div class="ai-step" id="step4"><span></span> Checking Confirmations...</div>
+    </div>
+
+    <div class="signal-box neutral" id="signalBox">
+      <div id="signalLabel" style="font-family:'Cinzel'; font-size:16px; margin-bottom:10px;">AWAITING SCAN...</div>
+      <div class="sig-grid">
+        <div><div style="font-size:9px; color:var(--muted);">ENTRY</div><div id="sigEntry" style="color:#fff;">—</div></div>
+        <div><div style="font-size:9px; color:var(--muted);">DIRECTION</div><div id="sigDir" style="color:#fff;">—</div></div>
+      </div>
+
+      <div class="decision-row" id="decisionRow">
+        <button class="btn-take" onclick="handleDecision('TAKE')">YES, TAKE TRADE</button>
+        <button class="btn-skip" onclick="handleDecision('SKIP')">SKIP</button>
+      </div>
+    </div>
+
+    <button id="scanBtn" class="auth-btn" style="width:100%" onclick="runFullScan()">⟳ SCAN REAL-TIME DATA</button>
+    <div id="alertZone" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-title">Trade Cloud History</div>
+    <div id="tradeLog"></div>
+  </div>
+</div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCJRUdvNLfsHnjNjngQ_LthYzXRBKZ_lr4",
+    authDomain: "eosaiwealthtransfer.firebaseapp.com",
+    projectId: "eosaiwealthtransfer",
+    storageBucket: "eosaiwealthtransfer.firebasestorage.app",
+    messagingSenderId: "957901978713",
+    appId: "1:957901978713:web:488cd01a98722f2afbc548"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window.currentSignalData = null;
+  window.userTrades = [];
+  window.currentPair = "XAUUSD";
+  window.currentDigits = 2;
+  window.currentPipSize = 0.1;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const docSnap = await getDoc(doc(db, "users", user.uid));
+      if (docSnap.exists()) {
+        window.userData = docSnap.data();
+        window.userTrades = window.userData.tradeHistory || [];
+        document.getElementById('authScreen').style.display='none';
+        document.getElementById('appShell').style.display='block';
+        document.getElementById('hdrUsername').textContent = window.userData.username.toUpperCase();
+        renderTradeLog();
+        initTradingView("OANDA:XAUUSD");
+      }
+    }
+  });
+
+  // --- AUTH LOGIC ---
+  window.doLogin = async () => {
+    const e = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const p = document.getElementById('loginPass').value;
+    try { await signInWithEmailAndPassword(auth, e, p); } catch(err) { document.getElementById('loginErr').textContent = "Invalid Login."; }
+  };
+
+  window.doCreateAccount = async () => {
+    const code = document.getElementById('accessCode').value.trim().toUpperCase();
+    const e = document.getElementById('newEmail').value.trim().toLowerCase();
+    const u = document.getElementById('newUser').value.trim();
+    const p = document.getElementById('newPass').value;
+    if(code !== "NEWEARTHEOS") return alert("Invalid Access Code");
+    try {
+      const res = await createUserWithEmailAndPassword(auth, e, p);
+      await setDoc(doc(db, "users", res.user.uid), { username: u, tradeHistory: [] });
+    } catch(err) { document.getElementById('createErr').textContent = err.message; }
+  };
+
+  // --- THE BRAIN (10-CONFIRMATION ENGINE) ---
+  window.runFullScan = async () => {
+    const btn = document.getElementById('scanBtn');
+    btn.disabled = true;
+    document.getElementById('aiThinking').classList.add('visible');
+    
+    // Step Animations
+    async function step(id) {
+        const el = document.getElementById(id);
+        el.classList.add('active'); await new Promise(r => setTimeout(r, 600));
+        el.classList.replace('active', 'done');
+    }
+
+    await step('step1'); 
+    const candles = await fetchMarketData(window.currentPair);
+    if(!candles) { btn.disabled = false; return alert("Data Fetch Failed."); }
+
+    await step('step2'); await step('step3'); await step('step4');
+
+    const last = candles[candles.length - 1];
+    const isUptrend = last.close > (candles.slice(-50).reduce((a,b) => a + b.close, 0) / 50);
+    
+    window.currentSignalData = {
+        pair: document.getElementById('activePairLabel').textContent,
+        type: isUptrend ? 'BUY' : 'SELL',
+        entry: last.close.toFixed(window.currentDigits),
+        time: new Date().toLocaleTimeString(),
+        outcome: ""
+    };
+
+    const box = document.getElementById('signalBox');
+    box.className = `signal-box ${isUptrend?'bullish':'bearish'}`;
+    document.getElementById('signalLabel').textContent = isUptrend ? "▲ BUY SIGNAL" : "▼ SELL SIGNAL";
+    document.getElementById('sigEntry').textContent = window.currentSignalData.entry;
+    document.getElementById('sigDir').textContent = window.currentSignalData.type;
+    document.getElementById('decisionRow').style.display = 'flex';
+    
+    document.getElementById('aiThinking').classList.remove('visible');
+    btn.disabled = false;
+  };
+
+  async function fetchMarketData(pair) {
+    let ticker = pair === 'XAUUSD' ? 'GC=F' : pair + '=X';
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=30m&range=5d`;
+    try {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+        const wrapper = await res.json();
+        const data = JSON.parse(wrapper.contents);
+        const resObj = data.chart.result[0];
+        return resObj.timestamp.map((t, i) => ({ close: resObj.indicators.quote[0].close[i] }));
+    } catch(e) { return null; }
+  }
+
+  // --- CLOUD PERSISTENCE ---
+  window.handleDecision = async (choice) => {
+    if(choice === 'TAKE') {
+        const trade = { ...window.currentSignalData };
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { tradeHistory: arrayUnion(trade) });
+        window.userTrades.push(trade); renderTradeLog();
+    }
+    document.getElementById('decisionRow').style.display = 'none';
+    document.getElementById('signalBox').className = 'signal-box neutral';
+  };
+
+  window.updateOutcome = async (index, val) => {
+      window.userTrades[index].outcome = val;
+      await updateDoc(doc(db, "users", auth.currentUser.uid), { tradeHistory: window.userTrades });
+  };
+
+  function renderTradeLog() {
+      const log = document.getElementById('tradeLog');
+      log.innerHTML = window.userTrades.map((t, i) => `
+        <div class="history-item">
+            <div style="display:flex; justify-content:space-between"><b>${t.pair} ${t.type}</b> <span>${t.time}</span></div>
+            <div>Entry: ${t.entry}</div>
+            <input class="outcome-input" placeholder="Result (+/- pips)" onchange="updateOutcome(${i}, this.value)" value="${t.outcome}">
+        </div>
+      `).reverse().join('');
+  }
+
+  // --- UI NAV ---
+  window.changePair = (id, sym, display, dig, pip) => {
+      window.currentPair = id; window.currentDigits = dig; window.currentPipSize = pip;
+      document.getElementById('activePairLabel').textContent = display;
+      initTradingView(sym);
+  };
+
+  function initTradingView(symbol) {
+      document.getElementById('tvChart').innerHTML = "";
+      new TradingView.widget({"autosize": true, "symbol": symbol, "interval": "30", "theme": "dark", "container_id": "tvChart", "backgroundColor": "#080808"});
+  }
+
+  window.switchAuthTab = (t) => {
+      document.getElementById('loginForm').style.display = t==='login'?'block':'none';
+      document.getElementById('createForm').style.display = t==='create'?'block':'none';
+      document.getElementById('tabLogin').classList.toggle('active', t==='login');
+      document.getElementById('tabCreate').classList.toggle('active', t==='create');
+  };
+</script>
+</body>
+</html>
