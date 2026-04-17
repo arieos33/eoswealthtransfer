@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EOSAI ◆ MOBILE PERSISTENCE ENGINE</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<style>
+:root {
+  --bg:#040404; --panel:#080808; --border:#181818;
+  --gold:#f0b429; --green:#00e676; --red:#ff3d57; --text:#d4c5a0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;}
+
+/* --- MOBILE STACKING LOGIC --- */
+.main {
+    display: flex;
+    flex-direction: column; /* Default to vertical for mobile */
+    gap: 1px;
+    background: var(--border);
+}
+
+/* DESKTOP RESTORE: Horizontal on big screens */
+@media (min-width: 1000px) {
+    .main { flex-direction: row; height: calc(100vh - 50px); }
+    .panel-side { width: 250px; }
+    .panel-main { flex: 1; }
+}
+
+.panel { background: var(--panel); padding: 15px; }
+.sec-title { font-family: 'Cinzel'; color: var(--gold); font-size: 11px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
+
+/* --- SIGNAL BOX & BUTTONS --- */
+.signal-box { border: 1px solid var(--border); padding: 15px; margin: 10px 0; border-left: 4px solid var(--gold); }
+.signal-box.BUY { border-left-color: var(--green); background: rgba(0,230,118,0.05); }
+.signal-box.SELL { border-left-color: var(--red); background: rgba(255,61,87,0.05); }
+
+.decision-row { display: none; gap: 10px; margin-top: 15px; }
+.btn-take { flex: 1; padding: 12px; background: var(--green); color: #000; font-weight: bold; border: none; cursor: pointer; font-family: 'Cinzel'; }
+.btn-skip { flex: 1; padding: 12px; background: transparent; border: 1px solid var(--red); color: var(--red); cursor: pointer; font-family: 'Cinzel'; }
+
+/* --- HISTORY LOG --- */
+.history-item { border: 1px solid var(--border); padding: 10px; margin-bottom: 10px; font-size: 12px; }
+.outcome-field { 
+    background: #000; border: 1px solid var(--gold); color: var(--gold); 
+    padding: 4px; width: 100%; margin-top: 8px; font-family: inherit; 
+}
+
+#appShell { display: none; }
+</style>
+</head>
+<body>
+
+<div id="authScreen" style="padding: 50px; text-align: center;">
+    <h1 style="font-family:'Cinzel'; color:var(--gold);">EOS AI LOGIN</h1>
+    <input type="email" id="email" placeholder="Email" style="display:block; margin: 10px auto; padding: 10px;">
+    <input type="password" id="pass" placeholder="Password" style="display:block; margin: 10px auto; padding: 10px;">
+    <button onclick="login()" style="padding: 10px 20px; background:var(--gold); border:none; cursor:pointer;">ENTER GRID</button>
+</div>
+
+<div id="appShell">
+    <div class="main">
+        <div class="panel panel-side">
+            <div class="sec-title">ACTIVE PAIR</div>
+            <h2 id="pair">XAU/USD</h2>
+        </div>
+
+        <div class="panel panel-main">
+            <div id="tvChart" style="height: 300px;"></div>
+            
+            <div class="signal-box" id="sigBox">
+                <h3 id="sigStatus">AWAITING SCAN</h3>
+                <div id="sigData" style="margin-top:5px; font-size:14px;"></div>
+                
+                <div class="decision-row" id="decisions">
+                    <button class="btn-take" onclick="saveTrade()">TAKE TRADE</button>
+                    <button class="btn-skip" onclick="resetScan()">SKIP</button>
+                </div>
+            </div>
+            <button onclick="mockScan()" style="width:100%; padding:15px; background:var(--gold); color:#000; font-family:'Cinzel'; border:none;">RUN AI SCAN</button>
+        </div>
+
+        <div class="panel panel-side">
+            <div class="sec-title">TRADE HISTORY</div>
+            <div id="tradeLog"></div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCJRUdvNLfsHnjNjngQ_LthYzXRBKZ_lr4",
+    authDomain: "eosaiwealthtransfer.firebaseapp.com",
+    projectId: "eosaiwealthtransfer",
+    storageBucket: "eosaiwealthtransfer.firebasestorage.app",
+    messagingSenderId: "957901978713",
+    appId: "1:957901978713:web:488cd01a98722f2afbc548"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+window.tempSignal = null;
+window.userTrades = [];
+
+// --- LOGIN ---
+window.login = async () => {
+    const e = document.getElementById('email').value;
+    const p = document.getElementById('pass').value;
+    try { await signInWithEmailAndPassword(auth, e, p); } catch(err) { alert(err.message); }
+};
+
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        const d = await getDoc(doc(db, "users", user.uid));
+        window.userTrades = d.data().trades || [];
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('appShell').style.display = 'block';
+        renderHistory();
+        new TradingView.widget({"autosize": true, "symbol": "OANDA:XAUUSD", "interval": "30", "theme": "dark", "container_id": "tvChart"});
+    }
+});
+
+// --- SCAN & BUTTON LOGIC ---
+window.mockScan = () => {
+    const dir = Math.random() > 0.5 ? 'BUY' : 'SELL';
+    window.tempSignal = {
+        pair: "XAU/USD",
+        dir: dir,
+        entry: (2300 + Math.random()*50).toFixed(2),
+        time: new Date().toLocaleTimeString(),
+        outcome: ""
+    };
+    
+    document.getElementById('sigBox').className = `signal-box ${dir}`;
+    document.getElementById('sigStatus').innerText = `${dir} SIGNAL DETECTED`;
+    document.getElementById('sigData').innerText = `Entry: ${window.tempSignal.entry}`;
+    document.getElementById('decisions').style.display = 'flex';
+};
+
+// --- CLOUD PERSISTENCE ---
+window.saveTrade = async () => {
+    if(!window.tempSignal) return;
+    try {
+        await updateDoc(doc(db, "users", auth.currentUser.uid), {
+            trades: arrayUnion(window.tempSignal)
+        });
+        window.userTrades.push(window.tempSignal);
+        renderHistory();
+        resetScan();
+        alert("Trade Synchronized to Cloud.");
+    } catch(err) { console.error(err); }
+};
+
+window.resetScan = () => {
+    document.getElementById('sigBox').className = `signal-box`;
+    document.getElementById('sigStatus').innerText = `AWAITING SCAN`;
+    document.getElementById('sigData').innerText = ``;
+    document.getElementById('decisions').style.display = 'none';
+};
+
+// --- HISTORY & MANUAL OUTCOME ---
+window.updateOutcome = async (index, val) => {
+    window.userTrades[index].outcome = val;
+    await updateDoc(doc(db, "users", auth.currentUser.uid), {
+        trades: window.userTrades
+    });
+};
+
+function renderHistory() {
+    const log = document.getElementById('tradeLog');
+    log.innerHTML = window.userTrades.map((t, i) => `
+        <div class="history-item">
+            <strong>${t.pair} | ${t.dir}</strong> <br> 
+            Entry: ${t.entry} <br>
+            <input class="outcome-field" placeholder="Enter Outcome (e.g. +20 pips)" 
+                   onchange="updateOutcome(${i}, this.value)" value="${t.outcome}">
+        </div>
+    `).reverse().join('');
+}
+</script>
+</body>
+</html>
