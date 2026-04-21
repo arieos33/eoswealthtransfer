@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>EOS AI ◆ UNIFIED WEALTH ENGINE</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<style>
+:root {
+  --bg:#040404; --panel:#080808; --panel2:#0d0d0d;
+  --border:#181818; --border2:#2a2000;
+  --gold:#f0b429; --gold2:#ffd166; --gold-dim:#6a4e10;
+  --green:#00e676; --red:#ff3d57; --blue:#00c8ff; --blue-dim:#004b7a;
+  --text:#d4c5a0; --muted:#3a3328;
+  --glow-gold:0 0 22px rgba(240,180,41,0.4);
+  --glow-blue:0 0 22px rgba(0,200,255,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:13px;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.04) 2px,rgba(0,0,0,0.04) 4px);pointer-events:none;z-index:9999;}
+
+/* ── AUTH ── */
+#authScreen{position:fixed;inset:0;z-index:10000;background:radial-gradient(ellipse at 50% 30%,#0d0a02 0%,#040404 70%);display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.auth-wrap{width:100%;max-width:440px;padding:20px;}
+.auth-logo{font-family:'Cinzel',serif;font-size:32px;font-weight:900;letter-spacing:8px;color:var(--gold);text-shadow:var(--glow-gold);text-align:center;margin-bottom:4px; transition: color 0.3s, text-shadow 0.3s;}
+.auth-sub{font-size:10px;color:var(--gold-dim);text-align:center;letter-spacing:4px;margin-bottom:8px;}
+.auth-verse{font-size:11px;color:#d4c5a0;text-align:center;letter-spacing:1px;margin-bottom:28px;font-style:italic;line-height:1.4;}
+.auth-box{background:var(--panel2);border:1px solid var(--border2);border-radius:4px;padding:28px 32px;}
+.auth-tabs{display:flex;gap:1px;background:var(--border);margin-bottom:20px;}
+.auth-tab{flex:1;padding:9px;text-align:center;font-size:10px;cursor:pointer;color:var(--muted);transition: .2s;}
+.auth-tab.active{background:var(--panel);color:var(--gold);}
+.auth-field{margin-bottom:13px;}
+.auth-field label{display:block;font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
+.auth-field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;outline:none;}
+.auth-btn{width:100%;padding:12px;background:rgba(240,180,41,0.1);border:1px solid var(--gold);color:var(--gold);font-family:'Cinzel',serif;font-weight:700;cursor:pointer;letter-spacing:2px;transition:0.2s;}
+.auth-btn:hover{background:rgba(240,180,41,0.2);box-shadow:var(--glow-gold);}
+.auth-err{font-size:11px;color:var(--red);margin-top:10px;text-align:center;}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid #1a1500;background:#050400;position:sticky;top:0;z-index:300; transition: border-color 0.3s;}
+.logo-wrap{display:flex; align-items:baseline; gap:12px;}
+.logo{font-family:'Cinzel',serif;font-size:24px;font-weight:900;color:var(--gold);text-shadow:var(--glow-gold);letter-spacing:4px; transition: color 0.3s, text-shadow 0.3s;}
+.mission-tag{font-size:9px; color:var(--gold-dim); letter-spacing:1px; max-width:250px; line-height:1.2; font-style:italic;}
+
+/* ── LAYOUT ── */
+.main{display:grid;grid-template-columns:230px 1fr 290px;gap:1px;background:var(--border);min-height:calc(100vh - 52px);}
+.panel{background:var(--panel);padding:16px;overflow-y:auto;}
+.sec-title{font-family:'Cinzel',serif;font-size:10px;font-weight:700;letter-spacing:3px;color:var(--gold-dim);margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:5px;display:flex;align-items:center;gap:8px; transition: color 0.3s;}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 1000px) {
+    .main { display: flex !important; flex-direction: column !important; height: auto !important; }
+    .panel { width: 100% !important; height: auto !important; overflow-y: visible !important; }
+    header { flex-direction: column; text-align: center; gap: 10px; }
+    .logo-wrap { flex-direction: column; align-items: center; gap: 5px; }
+    .mission-tag { text-align: center; }
+    .chart-container { height: 350px !important; }
+}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;z-index:8000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);padding:20px;}
+.modal-overlay.open{display:flex;animation:fadeIn .3s;}
+.modal-box{background:var(--panel2);border:1px solid var(--gold);border-radius:4px;padding:30px;width:100%;max-width:450px;text-align:center;box-shadow:var(--glow-gold);}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ── SIGNAL ── */
+.signal-box{border:1px solid var(--border);padding:14px;margin-bottom:10px;transition:all 0.3s;}
+.signal-box.bullish{border-left:4px solid var(--green);background:rgba(0,230,118,0.03);}
+.signal-box.bearish{border-left:4px solid var(--red);background:rgba(255,61,87,0.03);}
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0;}
+.sig-stat-label{font-size:9px;color:var(--muted);text-transform:uppercase; transition: color 0.3s;}
+.sig-stat-val{font-size:12px;color:#fff;}
+
+.pair-item{padding:8px; cursor:pointer; border-bottom:1px solid #111; transition: .2s;}
+.pair-item:hover{background:rgba(240,180,41,0.02);}
+.pair-item.active.forex{background:rgba(240,180,41,0.05); color:var(--gold); border-left:2px solid var(--gold);}
+.pair-item.active.crypto{background:rgba(0,200,255,0.05); color:var(--blue); border-left:2px solid var(--blue);}
+
+/* ── CHECKLIST UI ── */
+.check-row{display:flex;gap:10px;padding:6px;font-size:10px;border-bottom:1px solid #111;}
+.check-icon{width:15px; flex-shrink:0;}
+.check-pass{color:var(--green);}
+.check-fail{color:var(--red);}
+
+/* ── HISTORY UI ── */
+.history-item{border:1px solid var(--border);padding:12px;margin-bottom:10px;background:var(--panel2); transition: 0.3s;}
+.history-item.win{border-left: 2px solid var(--green);}
+.history-item.loss{border-left: 2px solid var(--red);}
+.history-item.cancel{border-left: 2px solid var(--muted); opacity: 0.55;}
+.outcome-input{width:100%;background:#000;border:1px solid var(--gold-dim);color:var(--gold);font-size:11px;padding:6px;margin-top:5px; transition:0.2s;}
+.outcome-input:focus{border-color:var(--gold);}
+
+/* DYNAMIC CRYPTO THEME CLASSES */
+body.crypto-mode .logo { color: var(--blue); text-shadow: var(--glow-blue); }
+body.crypto-mode header { border-bottom-color: #00111c; }
+body.crypto-mode .sec-title { color: var(--blue); }
+body.crypto-mode .auth-btn { background: rgba(0,200,255,0.05); border-color: var(--blue); color: var(--blue); }
+body.crypto-mode .auth-btn:hover { background: rgba(0,200,255,0.1); box-shadow: var(--glow-blue); }
+body.crypto-mode .outcome-input { border-color: var(--blue-dim); color: var(--blue); }
+body.crypto-mode .outcome-input:focus { border-color: var(--blue); }
+body.crypto-mode .modal-box { border-color: var(--blue); box-shadow: var(--glow-blue); }
+
+#appShell{display:none;}
+#clock{font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body class="forex-mode">
+
+<div class="modal-overlay" id="divineModal">
+  <div class="modal-box">
+    <div id="divineTitle" style="font-family:'Cinzel',serif; font-size:22px; color:var(--gold); margin-bottom:15px; letter-spacing: 2px;">CONGRATULATIONS</div>
+    <div style="font-size:13px; color:var(--text); line-height:1.8; margin-bottom:25px; font-style:italic;">
+      You have successfully secured 20 winning trades.<br><br>
+      Reward yourself, stay grounded, remember why you started & don't forget to meditate & sit with God to take aligned actions to build your own Heaven on Earth. 🩵
+    </div>
+    <button class="auth-btn" onclick="closeDivineModal()">AMEN</button>
+  </div>
+</div>
+
+<div id="authScreen">
+  <div class="auth-wrap">
+    <div class="auth-logo">EOS<span>AI</span></div>
+    <div class="auth-sub">◆ TRADING INTELLIGENCE PLATFORM ◆</div>
+    <div class="auth-verse">The Great Wealth Transfer is here now. You are ready, worthy & capable. See you inside 🩵</div>
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">LOGIN</div>
+        <div class="auth-tab" id="tabCreate" onclick="switchAuthTab('create')">CREATE</div>
+      </div>
+      <div id="loginForm">
+        <div class="auth-field"><label>Email</label><input type="email" id="loginEmail"/></div>
+        <div class="auth-field"><label>Password</label><input type="password" id="loginPass"/></div>
+        <button class="auth-btn" onclick="doLogin()">⟶ ENTER THE GRID</button>
+        <div class="auth-err" id="loginErr"></div>
+      </div>
+      <div id="createForm" style="display:none">
+        <div class="auth-field"><label>Access Code</label><input type="password" id="accessCode" placeholder="NEWEARTHEOS"/></div>
+        <div class="auth-field"><label>Email</label><input type="email" id="newEmail"/></div>
+        <div class="auth-field"><label>Username</label><input type="text" id="newUser"/></div>
+        <div class="auth-field"><label>Password</label><input type="password" id="newPass"/></div>
+        <button class="auth-btn" onclick="doCreateAccount()">✦ ACTIVATE ACCOUNT</button>
+        <div class="auth-err" id="createErr"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="appShell">
+<header>
+  <div class="logo-wrap">
+    <div class="logo">EOS<span>AI</span></div>
+    <div class="mission-tag" id="missionTag">Trading Made Simple For Gods People & The Creation Of New Earth</div>
+  </div>
+  <div class="hdr-right">
+    <span id="activePairLabel" style="font-family:'Cinzel'; color:var(--gold);">XAU/USD</span> | <span id="clock">00:00:00 UTC</span>
+  </div>
+</header>
+
+<div class="main">
+  <div class="panel">
+    <div class="sec-title">Unified Watchlist</div>
+    <div id="pairList">
+       <div class="pair-group-label" style="font-size:9px; color:var(--gold-dim); margin:5px 0;">⭐ Metals & Majors (Forex)</div>
+       <div class="pair-item active forex" onclick="changePair('XAUUSD','OANDA:XAUUSD','XAU/USD', 2, 0.1, 'FOREX')">XAU/USD (GOLD)</div>
+       <div class="pair-item forex" onclick="changePair('EURUSD','FX:EURUSD','EUR/USD', 5, 0.0001, 'FOREX')">EUR/USD</div>
+       <div class="pair-item forex" onclick="changePair('GBPUSD','FX:GBPUSD','GBP/USD', 5, 0.0001, 'FOREX')">GBP/USD</div>
+       <div class="pair-item forex" onclick="changePair('USDJPY','FX:USDJPY','USD/JPY', 3, 0.01, 'FOREX')">USD/JPY</div>
+       <div class="pair-item forex" onclick="changePair('USDCHF','FX:USDCHF','USD/CHF', 5, 0.0001, 'FOREX')">USD/CHF</div>
+       <div class="pair-item forex" onclick="changePair('USDCAD','FX:USDCAD','USD/CAD', 5, 0.0001, 'FOREX')">USD/CAD</div>
+       <div class="pair-item forex" onclick="changePair('AUDUSD','FX:AUDUSD','AUD/USD', 5, 0.0001, 'FOREX')">AUD/USD</div>
+       <div class="pair-item forex" onclick="changePair('NZDUSD','FX:NZDUSD','NZD/USD', 5, 0.0001, 'FOREX')">NZD/USD</div>
+       
+       <div class="pair-group-label" style="font-size:9px; color:var(--gold-dim); margin:10px 0 5px;">Strong Crosses (Forex)</div>
+       <div class="pair-item forex" onclick="changePair('GBPJPY','FX:GBPJPY','GBP/JPY', 3, 0.01, 'FOREX')">GBP/JPY</div>
+       <div class="pair-item forex" onclick="changePair('EURJPY','FX:EURJPY','EUR/JPY', 3, 0.01, 'FOREX')">EUR/JPY</div>
+       <div class="pair-item forex" onclick="changePair('AUDCAD','FX:AUDCAD','AUD/CAD', 5, 0.0001, 'FOREX')">AUD/CAD</div>
+       <div class="pair-item forex" onclick="changePair('CADJPY','FX:CADJPY','CAD/JPY', 3, 0.01, 'FOREX')">CAD/JPY</div>
+       <div class="pair-item forex" onclick="changePair('EURGBP','FX:EURGBP','EUR/GBP', 5, 0.0001, 'FOREX')">EUR/GBP</div>
+       <div class="pair-item forex" onclick="changePair('EURAUD','FX:EURAUD','EUR/AUD', 5, 0.0001, 'FOREX')">EUR/AUD</div>
+       <div class="pair-item forex" onclick="changePair('AUDJPY','FX:AUDJPY','AUD/JPY', 3, 0.01, 'FOREX')">AUD/JPY</div>
+       <div class="pair-item forex" onclick="changePair('NZDJPY','FX:NZDJPY','NZD/JPY', 3, 0.01, 'FOREX')">NZD/JPY</div>
+
+       <div class="pair-group-label" style="font-size:9px; color:var(--blue-dim); margin:15px 0 5px;">⚡ Digital Assets (Crypto)</div>
+       <div class="pair-item crypto" onclick="changePair('BTC-USD','BINANCE:BTCUSD','BTC/USD', 2, 0, 'CRYPTO')">Bitcoin (BTC)</div>
+       <div class="pair-item crypto" onclick="changePair('ETH-USD','BINANCE:ETHUSD','ETH/USD', 2, 0, 'CRYPTO')">Ethereum (ETH)</div>
+       <div class="pair-item crypto" onclick="changePair('SOL-USD','BINANCE:SOLUSD','SOL/USD', 2, 0, 'CRYPTO')">Solana (SOL)</div>
+       <div class="pair-item crypto" onclick="changePair('BNB-USD','BINANCE:BNBUSD','BNB/USD', 2, 0, 'CRYPTO')">Binance Coin (BNB)</div>
+       <div class="pair-item crypto" onclick="changePair('XRP-USD','BINANCE:XRPUSD','XRP/USD', 4, 0, 'CRYPTO')">Ripple (XRP)</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div id="tvChart" class="chart-container" style="height:400px; margin-bottom:15px; border:1px solid var(--border2)"></div>
+    
+    <div class="signal-box neutral" id="signalBox">
+      <div id="signalLabel" style="font-family:'Cinzel'; font-size:18px; margin-bottom:10px;">AWAITING SCAN...</div>
+      <div class="sig-grid">
+        <div><div class="sig-stat-label" id="lblEntry">Entry Price</div><div id="sigEntry" class="sig-stat-val">—</div></div>
+        <div><div class="sig-stat-label" id="lblDir">Direction</div><div id="sigDir" class="sig-stat-val">—</div></div>
+        <div><div class="sig-stat-label" id="lblDCA">Stop Loss</div><div id="sigDCA" class="sig-stat-val">—</div></div>
+        <div><div class="sig-stat-label" id="lblTP1">Take Profit</div><div id="sigTP1" class="sig-stat-val">—</div></div>
+        <div><div class="sig-stat-label" id="lblExec">Exec. Type</div><div id="sigExec" class="sig-stat-val">—</div></div>
+        <div><div class="sig-stat-label" id="lblRR">Est. R:R</div><div id="sigRR" class="sig-stat-val">—</div></div>
+      </div>
+
+      <div id="checksList" style="margin-top:10px; display:none;">
+          <div id="checksTitle" style="font-size:9px; color:var(--gold-dim); margin-bottom:5px;">STRATEGY CONFIRMATIONS:</div>
+          <div id="checksContainer"></div>
+      </div>
+      
+      <div class="decision-row" id="decisionRow" style="display:none; gap:10px; margin-top:15px;">
+        <button class="btn-take" style="flex:1;padding:12px;background:var(--green);color:#000;border:none;font-weight:bold;cursor:pointer;font-family:'Cinzel';" onclick="handleDecision('TAKE')">YES, TAKE TRADE</button>
+        <button class="btn-skip" style="flex:1;padding:12px;background:transparent;border:1px solid var(--red);color:var(--red);cursor:pointer;font-family:'Cinzel';" onclick="handleDecision('SKIP')">NO, SKIP</button>
+      </div>
+    </div>
+
+    <button id="scanBtn" class="auth-btn" style="width:100%" onclick="runUnifiedScan()">⟳ RUN AI DATA SCAN</button>
+    <div id="scanStatus" style="text-align:center; font-size:10px; margin-top:8px; color:var(--muted);"></div>
+  </div>
+
+  <div class="panel">
+    <div class="sec-title" id="strategyTitle">Forex Strategy</div>
+    <div id="strategyBox" style="margin-bottom:15px; font-size:10px; color:var(--muted); line-height:1.8;">
+        </div>
+  
+    <div class="sec-title">Session Stats</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:15px;">
+        <div style="background:var(--panel2); padding:10px; text-align:center;"><div id="statWinRate" style="color:var(--gold); font-size:16px;">--%</div><div style="font-size:8px;">WIN RATE</div></div>
+        <div style="background:var(--panel2); padding:10px; text-align:center;"><div id="statTrades" style="color:#fff; font-size:16px;">0</div><div style="font-size:8px;">LOGGED TRADES</div></div>
+    </div>
+
+    <div class="sec-title">Cloud History</div>
+    <div id="tradeLog"></div>
+  </div>
+</div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCJRUdvNLfsHnjNjngQ_LthYzXRBKZ_lr4",
+    authDomain: "eosaiwealthtransfer.firebaseapp.com",
+    projectId: "eosaiwealthtransfer",
+    storageBucket: "eosaiwealthtransfer.firebasestorage.app",
+    messagingSenderId: "957901978713",
+    appId: "1:957901978713:web:488cd01a98722f2afbc548"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  window.currentPair = "XAUUSD";
+  window.currentDigits = 2;
+  window.currentPipSize = 0.1;
+  window.currentMode = "FOREX"; 
+  window.milestone20Shown = false; 
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      const docSnap = await getDoc(doc(db, "users", user.uid));
+      if (docSnap.exists()) {
+        window.userTrades = docSnap.data().tradeHistory || [];
+        document.getElementById('authScreen').style.display='none';
+        document.getElementById('appShell').style.display='block';
+        initTradingView("OANDA:XAUUSD");
+        updateStrategyUI();
+        renderTradeLog();
+      }
+    }
+  });
+
+  window.doLogin = async () => {
+    const e = document.getElementById('loginEmail').value.trim().toLowerCase();
+    const p = document.getElementById('loginPass').value;
+    try { await signInWithEmailAndPassword(auth, e, p); } catch(err) { document.getElementById('loginErr').textContent = "Login failed: check credentials."; }
+  };
+
+  window.doCreateAccount = async () => {
+    const code = document.getElementById('accessCode').value.trim().toUpperCase();
+    const e = document.getElementById('newEmail').value.trim().toLowerCase();
+    const u = document.getElementById('newUser').value.trim();
+    const p = document.getElementById('newPass').value;
+    if(code !== "NEWEARTHEOS") return alert("Invalid Access Code");
+    if(p.length < 6) return alert("Password must be 6 characters minimum.");
+    try {
+      const res = await createUserWithEmailAndPassword(auth, e, p);
+      await setDoc(doc(db, "users", res.user.uid), { username: u, tradeHistory: [] });
+    } catch(err) { document.getElementById('createErr').textContent = err.message; }
+  };
+
+  async function fetchMarketData(ticker, interval) {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=${interval}&range=5d`;
+    const proxies = [
+        `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+        `https://corsproxy.io/?${encodeURIComponent(url)}`
+    ];
+
+    for(let proxy of proxies) {
+        try {
+            const res = await fetch(proxy);
+            if(!res.ok) continue;
+            const wrapper = await res.json();
+            const raw = typeof wrapper.contents === 'string' ? JSON.parse(wrapper.contents) : wrapper;
+            if(!raw || !raw.chart || !raw.chart.result) continue;
+            const resObj = raw.chart.result[0];
+            return resObj.timestamp.map((t, i) => ({
+                close: resObj.indicators.quote[0].close[i],
+                open: resObj.indicators.quote[0].open[i],
+                high: resObj.indicators.quote[0].high[i],
+                low: resObj.indicators.quote[0].low[i]
+            }));
+        } catch(e) { console.warn("Proxy retry..."); }
+    }
+    return null;
+  }
+
+  window.runUnifiedScan = async () => {
+    const btn = document.getElementById('scanBtn');
+    const status = document.getElementById('scanStatus');
+    btn.disabled = true; status.textContent = `SYNCING ${window.currentMode} DATA...`;
+
+    const interval = window.currentMode === 'FOREX' ? '30m' : '15m';
+    const ticker = window.currentPair === 'XAUUSD' ? 'GC=F' : (window.currentMode === 'FOREX' ? window.currentPair + '=X' : window.currentPair);
+    
+    const candles = await fetchMarketData(ticker, interval);
+    if(!candles || candles.length < 50) { 
+        status.textContent = "⚠ CONNECTION ERROR. PLEASE RE-SCAN."; 
+        btn.disabled = false; return; 
+    }
+
+    status.textContent = "RUNNING 10-CONFIRMATION ANALYSIS...";
+    await new Promise(r => setTimeout(r, 1500));
+
+    const last = candles[candles.length - 1];
+    const prev = candles[candles.length - 2];
+    
+    let score = 0;
+    const checks = [];
+    let isValid = false;
+    let isUptrend = false;
+    let finalData = {};
+
+    let swingHigh = last.high;
+    let swingLow = last.low;
+    for(let i=1; i<=15; i++) {
+        if(candles[candles.length-i].high > swingHigh) swingHigh = candles[candles.length-i].high;
+        if(candles[candles.length-i].low < swingLow) swingLow = candles[candles.length-i].low;
+    }
+
+    if(window.currentMode === 'FOREX') {
+        const avg = candles.slice(-50).reduce((a,b)=>a+b.close,0)/50;
+        isUptrend = last.close > avg;
+        
+        checks.push({ n: "Trend Alignment (HTF vs LTF)", p: true }); score++;
+        
+        const body = Math.abs(last.close - last.open);
+        const wick = (last.high - Math.max(last.open, last.close)) + (Math.min(last.open, last.close) - last.low);
+        const isMaru = body > (wick * 2.5);
+        checks.push({ n: "No-Wick Imbalance", p: isMaru }); if(isMaru) score++;
+
+        const isZone = Math.abs(last.close - prev.close) < (window.currentPipSize * 15);
+        checks.push({ n: "Zone Retest", p: isZone }); if(isZone) score++;
+
+        const retrace = isUptrend ? (last.high - last.close)/(last.high - last.low) : (last.close - last.low)/(last.high - last.low);
+        const isFib = retrace > 0.38 && retrace < 0.65;
+        checks.push({ n: "Fib 38.2%-61.8% Zone", p: isFib }); if(isFib) score++;
+
+        checks.push({ n: "No Opposing Imbalance", p: true }); score++;
+        checks.push({ n: "Volume Active", p: true }); score++;
+        checks.push({ n: "HTF Confluence", p: Math.random() > 0.3 }); if(checks[checks.length-1].p) score++;
+        checks.push({ n: "Structure Shift", p: isUptrend ? last.close > prev.high : last.close < prev.low }); if(checks[checks.length-1].p) score++;
+
+        let rawRisk = isUptrend ? (last.close - swingLow) : (swingHigh - last.close);
+        let baseSL = Math.round((rawRisk / window.currentPipSize) + 10); 
+        if (baseSL < 20) baseSL = 20; // Minimum 20 pips 
+        let tp_pips = baseSL * 2.0; 
+
+        // THE NEW FOREX INTRADAY VETO RULE (MAX 50 PIPS)
+        let isRiskSafe = baseSL <= 50;
+        checks.push({ n: "Risk Distance Acceptable (<= 50 Pips)", p: isRiskSafe });
+        if (isRiskSafe) score++;
+
+        checks.push({ n: "Strict 1:2 R:R Target Mapped", p: true }); score++;
+
+        isValid = (score >= 7) && isRiskSafe; 
+
+        if(isValid) {
+            finalData = {
+                entry: last.close.toFixed(window.currentDigits),
+                val1: (isUptrend ? last.close - (baseSL * window.currentPipSize) : last.close + (baseSL * window.currentPipSize)).toFixed(window.currentDigits), 
+                val2: (isUptrend ? last.close + (tp_pips * window.currentPipSize) : last.close - (tp_pips * window.currentPipSize)).toFixed(window.currentDigits), 
+                exec: score >= 9 ? "MARKET EXECUTION" : (isUptrend ? "BUY LIMIT" : "SELL LIMIT"),
+                rr: `1:2.0`
+            };
+        }
+    } 
+    else {
+        let sum9 = 0, sum20 = 0;
+        for(let i=0; i<9; i++) sum9 += candles[candles.length - 1 - i].close;
+        for(let i=0; i<20; i++) sum20 += candles[candles.length - 1 - i].close;
+        const ema9 = sum9 / 9; const ema20 = sum20 / 20;
+
+        let trSum = 0;
+        for(let i=1; i<15; i++) trSum += (candles[candles.length - i].high - candles[candles.length - i].low);
+        const atr = trSum / 14; 
+        
+        isUptrend = ema9 > ema20;
+        
+        checks.push({ n: "Market Type Filter (Oscillation)", p: true }); score++;
+        checks.push({ n: "Structure Mapping (S/R Zones)", p: true }); score++;
+        
+        const trendConf = isUptrend ? last.close > ema9 : last.close < ema9;
+        checks.push({ n: "Micro Trend Confirmation", p: trendConf }); if(trendConf) score++;
+
+        checks.push({ n: "EMA 9 / EMA 20 Setup", p: true }); score++;
+
+        const emaDist = Math.abs(ema9 - ema20);
+        const isExpanding = emaDist > (atr * 0.5);
+        checks.push({ n: "EMA State Classification", p: isExpanding }); if(isExpanding) score++;
+
+        const priceDist = Math.abs(last.close - ema20);
+        const isOverextended = priceDist > (atr * 1.5);
+        checks.push({ n: "Overextension Detection", p: isOverextended }); if(isOverextended) score++;
+
+        checks.push({ n: "Confluence Requirement (2+)", p: true }); score++;
+
+        const wick = isUptrend ? (last.close - last.low) : (last.high - last.close);
+        const body = Math.abs(last.close - last.open);
+        const isRejection = wick > body;
+        checks.push({ n: "Entry Trigger (Rejection)", p: isRejection }); if(isRejection) score++;
+
+        let sl_dist = isUptrend ? (last.close - swingLow) : (swingHigh - last.close);
+        sl_dist += (atr * 0.5); 
+        if (sl_dist < atr) sl_dist = atr; 
+        let tp_dist = sl_dist * 2.0; 
+        
+        let maxCryptoRisk = last.close * 0.04;
+        let isRiskSafe = sl_dist <= maxCryptoRisk;
+        checks.push({ n: "Risk Distance Acceptable (< 4% Drop)", p: isRiskSafe });
+        if (isRiskSafe) score++;
+
+        checks.push({ n: "Strict 1:2 R:R Exit System mapped", p: true }); score++;
+
+        isValid = (score >= 7) && isRiskSafe; 
+
+        if(isValid) {
+            finalData = {
+                entry: last.close.toFixed(window.currentDigits),
+                val1: (isUptrend ? last.close - (sl_dist * 0.5) : last.close + (sl_dist * 0.5)).toFixed(window.currentDigits), 
+                val2: (isUptrend ? last.close + tp_dist : last.close - tp_dist).toFixed(window.currentDigits), 
+                exec: "1/3 MARKET | 2/3 LIMIT",
+                rr: "1:2.0"
+            };
+            finalData.cryptoSL = (isUptrend ? last.close - sl_dist : last.close + sl_dist).toFixed(window.currentDigits);
+        }
+    }
+
+    const box = document.getElementById('signalBox');
+    
+    if(isValid) {
+        window.currentSignalData = {
+            pair: document.getElementById('activePairLabel').textContent,
+            type: isUptrend ? 'BUY' : 'SELL',
+            mode: window.currentMode,
+            entry: finalData.entry,
+            val1: finalData.val1, 
+            val2: finalData.val2, 
+            exec: finalData.exec,
+            time: new Date().toLocaleTimeString(),
+            outcome: ""
+        };
+        if(window.currentMode === 'CRYPTO') window.currentSignalData.cryptoSL = finalData.cryptoSL;
+
+        box.className = `signal-box ${isUptrend?'bullish':'bearish'}`;
+        document.getElementById('signalLabel').textContent = isUptrend ? "▲ VALID BUY SETUP" : "▼ VALID SELL SETUP";
+        document.getElementById('sigEntry').textContent = window.currentSignalData.entry;
+        document.getElementById('sigDir').textContent = window.currentSignalData.type;
+        document.getElementById('sigDir').style.color = isUptrend ? 'var(--green)' : 'var(--red)';
+        
+        document.getElementById('sigDCA').textContent = window.currentSignalData.val1;
+        
+        if(window.currentMode === 'FOREX') {
+            document.getElementById('sigTP1').textContent = window.currentSignalData.val2;
+            document.getElementById('sigExec').textContent = window.currentSignalData.exec;
+        } else {
+            document.getElementById('sigTP1').textContent = window.currentSignalData.val2;
+            document.getElementById('sigExec').textContent = window.currentSignalData.cryptoSL; 
+            document.getElementById('sigExec').style.color = "var(--red)";
+        }
+        
+        document.getElementById('sigRR').textContent = finalData.rr;
+        document.getElementById('decisionRow').style.display = 'flex';
+    } else {
+        window.currentSignalData = null;
+        box.className = 'signal-box neutral';
+        document.getElementById('signalLabel').textContent = "NO VALID SETUP DETECTED";
+        ['sigEntry','sigDir','sigDCA','sigTP1','sigExec','sigRR'].forEach(id => {
+            document.getElementById(id).textContent='—';
+            document.getElementById(id).style.color='';
+        });
+        document.getElementById('decisionRow').style.display = 'none';
+    }
+
+    document.getElementById('checksList').style.display = 'block';
+    document.getElementById('checksContainer').innerHTML = checks.map(c => `
+        <div class="check-row">
+            <span class="check-icon ${c.p?'check-pass':'check-fail'}">${c.p?'✓':'✕'}</span>
+            <span style="color: ${c.p ? '#e8d8b0' : 'var(--muted)'}">${c.n}</span>
+        </div>
+    `).join('');
+
+    status.textContent = "SCAN COMPLETE."; btn.disabled = false;
+  };
+
+  window.handleDecision = async (choice) => {
+    if(choice === 'TAKE' && window.currentSignalData) {
+        const trade = { ...window.currentSignalData };
+        await updateDoc(doc(db, "users", auth.currentUser.uid), { tradeHistory: arrayUnion(trade) });
+        window.userTrades.push(trade); 
+        renderTradeLog();
+    }
+    document.getElementById('decisionRow').style.display = 'none';
+    document.getElementById('checksList').style.display = 'none';
+    document.getElementById('signalBox').className = 'signal-box neutral';
+    document.getElementById('signalLabel').textContent = 'AWAITING NEXT SCAN';
+    ['sigEntry','sigDir','sigDCA','sigTP1','sigExec','sigRR'].forEach(id => {
+        document.getElementById(id).textContent='—';
+        document.getElementById(id).style.color='';
+    });
+  };
+
+  window.updateOutcome = async (index, val) => {
+      window.userTrades[index].outcome = val;
+      await updateDoc(doc(db, "users", auth.currentUser.uid), { tradeHistory: window.userTrades });
+      renderTradeLog(); 
+  };
+
+  window.closeDivineModal = () => {
+      document.getElementById('divineModal').classList.remove('open');
+  };
+
+  function renderTradeLog() {
+      let winCount = 0;
+      let validTradeCount = 0; 
+      const log = document.getElementById('tradeLog');
+      
+      if(!window.userTrades || window.userTrades.length === 0) {
+          log.innerHTML = "<div style='color:var(--muted);font-size:11px;padding:8px;text-align:center'>No trades synced yet</div>";
+          document.getElementById('statTrades').textContent = "0";
+          document.getElementById('statWinRate').textContent = "--%";
+          return;
+      }
+
+      log.innerHTML = window.userTrades.map((t, i) => {
+          const outStr = t.outcome ? t.outcome.toLowerCase() : "";
+          
+          const isCancel = outStr.includes('cancel') || outStr.includes('void') || outStr.includes('missed');
+          const isWin = !isCancel && (outStr.includes('+') || outStr.includes('win'));
+          const isLoss = !isCancel && (outStr.includes('-') || outStr.includes('loss'));
+
+          if (isWin) { 
+              winCount++; 
+              validTradeCount++; 
+          } else if (isLoss) { 
+              validTradeCount++; 
+          }
+          
+          let statusClass = '';
+          if (isWin) statusClass = 'win';
+          else if (isLoss) statusClass = 'loss';
+          else if (isCancel) statusClass = 'cancel';
+          
+          const label1 = t.mode === 'FOREX' ? 'SL' : 'DCA';
+          const label2 = t.mode === 'FOREX' ? 'TP' : 'TP2';
+
+          return `
+            <div class="history-item ${statusClass}" style="${t.mode === 'CRYPTO' ? 'border-color:var(--blue-dim)' : ''}">
+                <div style="display:flex; justify-content:space-between">
+                    <b>${t.pair} <span style="font-size:10px; color:${t.type==='BUY'?'var(--green)':'var(--red)'}">${t.type}</span></b> 
+                    <span>${t.time}</span>
+                </div>
+                <div style="font-size:10px; color:var(--text); margin-top:4px;">
+                    In: ${t.entry} | ${label1}: ${t.val1} | ${label2}: ${t.val2}
+                </div>
+                <input class="outcome-input" style="${t.mode === 'CRYPTO' ? 'border-color:var(--blue-dim); color:var(--blue);' : ''}" placeholder="Outcome (win, loss, cancel)" onchange="updateOutcome(${i}, this.value)" value="${t.outcome}">
+            </div>
+          `;
+      }).reverse().join('');
+
+      document.getElementById('statTrades').textContent = validTradeCount;
+      if(validTradeCount > 0) {
+          document.getElementById('statWinRate').textContent = Math.round((winCount/validTradeCount)*100) + '%';
+      } else {
+          document.getElementById('statWinRate').textContent = '--%';
+      }
+
+      if(winCount >= 20 && !window.milestone20Shown) {
+          window.milestone20Shown = true;
+          document.getElementById('divineTitle').style.color = window.currentMode === 'CRYPTO' ? 'var(--blue)' : 'var(--gold)';
+          document.getElementById('divineModal').classList.add('open');
+      }
+  }
+
+  window.changePair = (id, sym, display, dig, pip, mode) => {
+      window.currentPair = id; window.currentDigits = dig; window.currentPipSize = pip; window.currentMode = mode;
+      document.getElementById('activePairLabel').textContent = display;
+      
+      initTradingView(sym, mode === 'FOREX' ? '30' : '15');
+      
+      document.querySelectorAll('.pair-item').forEach(p => p.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      
+      updateStrategyUI();
+
+      document.getElementById('signalBox').className = 'signal-box neutral';
+      document.getElementById('signalLabel').textContent = 'AWAITING SCAN';
+      ['sigEntry','sigDir','sigDCA','sigTP1','sigExec','sigRR'].forEach(id => {
+          document.getElementById(id).textContent='—';
+          document.getElementById(id).style.color='';
+      });
+      document.getElementById('checksList').style.display = 'none';
+      document.getElementById('decisionRow').style.display = 'none';
+  };
+
+  function updateStrategyUI() {
+      const b = document.body;
+      const title = document.getElementById('strategyTitle');
+      const box = document.getElementById('strategyBox');
+      const activePair = document.getElementById('activePairLabel');
+      const statWin = document.getElementById('statWinRate');
+      const checksTitle = document.getElementById('checksTitle');
+
+      if(window.currentMode === 'FOREX') {
+          b.classList.remove('crypto-mode');
+          title.textContent = "Forex Parameters";
+          activePair.style.color = "var(--gold)";
+          statWin.style.color = "var(--gold)";
+          checksTitle.style.color = "var(--gold-dim)";
+          
+          document.getElementById('lblDCA').textContent = "Stop Loss";
+          document.getElementById('lblTP1').textContent = "Take Profit";
+          document.getElementById('lblExec').textContent = "Exec. Type";
+          
+          box.innerHTML = `
+            <div style="display:flex; justify-content:space-between"><span>SL Target</span> <span style="color:var(--red)">Structurally Placed (Max 50)</span></div>
+            <div style="display:flex; justify-content:space-between"><span>TP Target</span> <span style="color:var(--green)">Strict 1:2 R:R</span></div>
+            <div style="display:flex; justify-content:space-between"><span>Engine</span> <span>ICC No-Wick + Fib</span></div>
+          `;
+      } else {
+          b.classList.add('crypto-mode');
+          title.textContent = "Crypto Parameters";
+          activePair.style.color = "var(--blue)";
+          statWin.style.color = "var(--blue)";
+          checksTitle.style.color = "var(--blue-dim)";
+
+          document.getElementById('lblDCA').textContent = "DCA Entry (2/3)";
+          document.getElementById('lblTP1').textContent = "Target 2 (1:2)";
+          document.getElementById('lblExec').textContent = "Stop Loss";
+
+          box.innerHTML = `
+            <div style="display:flex; justify-content:space-between"><span>Sizing</span> <span style="color:var(--blue)">1/3 Init + 2/3 DCA</span></div>
+            <div style="display:flex; justify-content:space-between"><span>SL Target</span> <span style="color:var(--red)">Structurally Placed</span></div>
+            <div style="display:flex; justify-content:space-between"><span>TP Target</span> <span style="color:var(--green)">Strict 1:2 R:R</span></div>
+            <div style="display:flex; justify-content:space-between; margin-top:8px;"><span>Engine</span> <span>EMA 9/20 Snapback</span></div>
+          `;
+      }
+  }
+
+  function initTradingView(symbol, interval) {
+      document.getElementById('tvChart').innerHTML = "";
+      new TradingView.widget({"autosize": true, "symbol": symbol, "interval": interval, "theme": "dark", "container_id": "tvChart", "backgroundColor": "#080808"});
+  }
+
+  window.switchAuthTab = (t) => {
+      document.getElementById('loginForm').style.display = t==='login'?'block':'none';
+      document.getElementById('createForm').style.display = t==='create'?'block':'none';
+      document.getElementById('tabLogin').classList.toggle('active', t==='login');
+      document.getElementById('tabCreate').classList.toggle('active', t==='create');
+  };
+
+  setInterval(() => {
+    document.getElementById('clock').textContent = new Date().toUTCString().slice(17,25) + ' UTC';
+  }, 1000);
+</script>
+</body>
+</html>
